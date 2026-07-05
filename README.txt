@@ -1,0 +1,1 @@
+Dinner invite mini form. Open index.html in a browser or host the folder as a static site. Responses are stored in Supabase table public.personal_dinner_invite_responses. Public visitors can INSERT only; they cannot SELECT.
