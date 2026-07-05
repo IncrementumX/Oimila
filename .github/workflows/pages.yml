@@ -25,6 +25,10 @@ jobs:
         uses: actions/checkout@v4
       - name: Setup Pages
         uses: actions/configure-pages@v5
+        with:
+          # Enable the Pages site from the workflow if it isn't already,
+          # so the deploy doesn't fail with "Get Pages site failed / Not Found".
+          enablement: true
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v3
         with:
