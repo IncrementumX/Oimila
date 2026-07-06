@@ -3,9 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Convite</title>
-<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 16 16%22%3E%3Ctext y=%2213%22 font-size=%2213%22%3E%F0%9F%8D%B7%3C/text%3E%3C/svg%3E">
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<title>Mock B — Editorial</title>
 <style>
   @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
 
@@ -172,6 +170,7 @@
     user-select: none;
   }
 </style>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 </head>
 <body>
 
@@ -182,14 +181,13 @@
   <a class="admin-link" id="adminLink" href="#">·</a>
 
 <script>
-  // --- Supabase backend (same project/table the previous version wrote to) ---
+  const card = document.getElementById('card');
   const SUPABASE_URL = 'https://oziequrhypzbfdynnnda.supabase.co';
   const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im96aWVxdXJoeXB6YmZkeW5ubmRhIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQwNTU3OTEsImV4cCI6MjA4OTYzMTc5MX0.dU0_ISLUdDVAh0XQ4wLFlDXf4ZTOuRh__4_mcp0aFxo';
   const INVITE_ID = 'dinner-2026-07';
-  const TABLE = 'personal_dinner_invite_responses';
-  const client = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
-
-  const card = document.getElementById('card');
+  const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+  // every response the recipient gives gets a namespaced key so multiple sends don't collide
+  const STORAGE_KEY_PREFIX = 'mila-resposta:';
   // tracks the setInterval driving the animated "..." during a loading screen,
   // so swapTo can kill it before the next screen renders — otherwise the interval
   // keeps firing against a detached span after card.innerHTML is cleared
@@ -290,13 +288,17 @@
   }
 
   async function saveResponse(value) {
+    const RESPONSE_MAP = {
+      oi: 'maybe',
+      nada_a_ver: 'no',
+      sim_jantar: 'yes',
+      recusou_jantar: 'no'
+    };
+    const response = RESPONSE_MAP[value] || 'maybe';
     try {
-      const { error } = await client.from(TABLE).insert({
-        invite_id: INVITE_ID,
-        response: value,
-        user_agent: navigator.userAgent,
-        page_url: location.href
-      });
+      const { error } = await supabaseClient
+        .from('personal_dinner_invite_responses')
+        .insert({ invite_id: INVITE_ID, response, user_agent: navigator.userAgent, page_url: location.href });
       if (error) console.error('Falha ao salvar resposta', error);
     } catch (e) {
       console.error('Falha ao salvar resposta', e);
@@ -364,7 +366,7 @@
     await saveResponse('sim_jantar');
     swapTo(() => {
       rule();
-      message('Combinado 😘');
+      message('Combinado \uD83D\uDE18');
     });
   }
 
@@ -373,7 +375,7 @@
     swapTo(() => {
       const t = document.createElement('div');
       t.className = 'thanks';
-      t.textContent = 'ah não 😭';
+      t.textContent = 'ah não \uD83D\uDE2D';
       card.appendChild(t);
     });
   }
@@ -388,16 +390,16 @@
     if (clicks >= 5) {
       clicks = 0;
       try {
-        const { data, error } = await client
-          .from(TABLE)
-          .select('response, created_at')
-          .eq('invite_id', INVITE_ID)
-          .order('created_at', { ascending: true });
-        if (error) throw error;
-        const rows = data || [];
-        alert(rows.length
-          ? rows.map(r => r.response.toUpperCase() + ' — ' + new Date(r.created_at).toLocaleString('pt-BR')).join('\n')
-          : 'sem respostas ainda');
+        const list = await window.storage.list(STORAGE_KEY_PREFIX, true);
+        const keys = (list && list.keys) || [];
+        const rows = [];
+        for (const k of keys) {
+          try {
+            const r = await window.storage.get(k, true);
+            if (r) rows.push(JSON.parse(r.value));
+          } catch (err) {}
+        }
+        alert(rows.length ? rows.map(r => r.resposta.toUpperCase() + ' — ' + new Date(r.quando).toLocaleString('pt-BR')).join('\n') : 'sem respostas ainda');
       } catch (err) {
         alert('erro ao ler respostas');
       }
