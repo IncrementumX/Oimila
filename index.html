@@ -175,7 +175,9 @@
 <body>
 
   <div class="card" id="card">
-    <button class="action-btn" id="btnOpen">Clique aqui</button>
+    <div class="rule"></div>
+    <div class="message">Oi, Mila</div>
+    <button class="action-btn" id="btnStart">Clique Aqui</button>
   </div>
 
   <a class="admin-link" id="adminLink" href="#">·</a>
@@ -302,13 +304,9 @@
     }
   }
 
-  document.getElementById('btnOpen').addEventListener('click', () => {
-    swapTo(() => {
-      rule();
-      message('Oi, Mila');
-      actionButton('Clique Aqui', onFirstClick);
-    });
-  });
+  // the "Oi, Mila" + "Clique Aqui" screen is now the initial state (rendered
+  // statically in the card above), so the first click goes straight to the flow
+  document.getElementById('btnStart').addEventListener('click', onFirstClick, { once: true });
 
   async function onFirstClick() {
     await swapTo(() => { loadingScreen('Carregando', 2200); });
