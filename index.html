@@ -4,6 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Mock B — Editorial</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 16 16%22%3E%3Ctext y=%2213%22 font-size=%2213%22%3E%E2%80%A2%3C/text%3E%3C/svg%3E">
 <style>
   @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
 
@@ -288,17 +289,14 @@
   }
 
   async function saveResponse(value) {
-    const RESPONSE_MAP = {
-      oi: 'maybe',
-      nada_a_ver: 'no',
-      sim_jantar: 'yes',
-      recusou_jantar: 'no'
-    };
-    const response = RESPONSE_MAP[value] || 'maybe';
+    // The live table's CHECK constraint and RLS insert policy accept ONLY the
+    // design's own outcome vocabulary: oi / nada_a_ver / sim_jantar / recusou_jantar.
+    // Remapping to yes/no/maybe is rejected (Postgres error 23514), so the design's
+    // native value is passed through unchanged — this is the verified direct mapping.
     try {
       const { error } = await supabaseClient
         .from('personal_dinner_invite_responses')
-        .insert({ invite_id: INVITE_ID, response, user_agent: navigator.userAgent, page_url: location.href });
+        .insert({ invite_id: INVITE_ID, response: value, user_agent: navigator.userAgent, page_url: location.href });
       if (error) console.error('Falha ao salvar resposta', error);
     } catch (e) {
       console.error('Falha ao salvar resposta', e);
@@ -390,16 +388,14 @@
     if (clicks >= 5) {
       clicks = 0;
       try {
-        const list = await window.storage.list(STORAGE_KEY_PREFIX, true);
-        const keys = (list && list.keys) || [];
-        const rows = [];
-        for (const k of keys) {
-          try {
-            const r = await window.storage.get(k, true);
-            if (r) rows.push(JSON.parse(r.value));
-          } catch (err) {}
-        }
-        alert(rows.length ? rows.map(r => r.resposta.toUpperCase() + ' — ' + new Date(r.quando).toLocaleString('pt-BR')).join('\n') : 'sem respostas ainda');
+        const { data, error } = await supabaseClient
+          .from('personal_dinner_invite_responses')
+          .select('response, created_at')
+          .eq('invite_id', INVITE_ID)
+          .order('created_at', { ascending: true });
+        if (error) throw error;
+        const rows = data || [];
+        alert(rows.length ? rows.map(r => r.response.toUpperCase() + ' — ' + new Date(r.created_at).toLocaleString('pt-BR')).join('\n') : 'sem respostas ainda');
       } catch (err) {
         alert('erro ao ler respostas');
       }
